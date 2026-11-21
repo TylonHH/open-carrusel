@@ -49,5 +49,9 @@ next-env.d.ts
 open-carrusel*.log
 /.next/cache/
 
+# opencode session/agent scratch (agents/ is tracked)
+/.opencode/tmp/
+/.opencode/goals/
+
 # OS
 Thumbs.db

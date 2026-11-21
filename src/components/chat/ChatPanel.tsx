@@ -172,6 +172,11 @@ export function ChatPanel({
                         : m
                     )
                   );
+                } else if (
+                  data.type === "error" &&
+                  typeof data.message === "string"
+                ) {
+                  setError(data.message);
                 }
               } catch {
                 // skip unparseable

@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import crossSpawn from "cross-spawn";
 import { getClaudePath, isClaudeAvailable } from "@/lib/claude-path";
+import { getAiProvider } from "@/lib/ai-provider";
+import { findOpenCodePath } from "@/lib/opencode-path";
+import { streamOpenCode } from "@/lib/opencode-chat";
 import { buildSystemPrompt } from "@/lib/chat-system-prompt";
 import { addBrandRule, getBrand } from "@/lib/brand";
 import { getCarousel } from "@/lib/carousels";
@@ -15,7 +18,19 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
-  if (!isClaudeAvailable()) {
+  const useOpenCode = getAiProvider() === "opencode";
+  const openCodePath = useOpenCode ? findOpenCodePath() : null;
+  if (useOpenCode && !openCodePath) {
+    return NextResponse.json(
+      {
+        error:
+          "OpenCode CLI not found. Install from https://opencode.ai or set OPENCODE_CLI_PATH in .env.local",
+      },
+      { status: 503 }
+    );
+  }
+
+  if (!useOpenCode && !isClaudeAvailable()) {
     return NextResponse.json(
       {
         error:
@@ -77,6 +92,17 @@ The app has already saved this message as a permanent brand rule. Apply it immed
     : "";
   const systemPrompt =
     buildSystemPrompt(brand, carousel, stylePreset) + ruleNote;
+
+  if (openCodePath) {
+    return streamOpenCode({
+      openCodePath,
+      message,
+      systemPrompt,
+      sessionId,
+      carouselName: carousel?.name,
+      baseUrl: request.nextUrl.origin || "http://localhost:3000",
+    });
+  }
 
   const claudePath = getClaudePath();
   const abortController = new AbortController();

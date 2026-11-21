@@ -298,6 +298,18 @@ CLAUDE_CLI_PATH=/path/to/claude   # set if `which claude` doesn't find it
 
 On Windows, run `where claude` in PowerShell to find the path (typically `C:\Users\<you>\AppData\Roaming\npm\claude.cmd`), then set `CLAUDE_CLI_PATH` in `.env.local`.
 
+#### Using OpenCode instead of Claude (optional)
+
+Claude CLI is the default. To drive the chat with [OpenCode](https://opencode.ai) instead:
+
+```bash
+AI_PROVIDER=opencode
+OPENCODE_CLI_PATH=/path/to/opencode   # optional, auto-detected otherwise
+OPENCODE_MODEL=provider/model         # optional, pins the model
+```
+
+The chat runs `opencode run --agent carrusel`. The agent is defined in `.opencode/agents/carrusel.md` and is restricted to `curl` against the local API, `read` for reference images and `webfetch`; it cannot edit project files.
+
 ### Brand config
 
 Set on first run (or via the gear icon in the top bar). You can keep several brands (one per client or account): switch, add, edit and delete them with the brand switcher on the dashboard. Each carousel belongs to one brand. Stored at `/data/brands.json` (an existing `/data/brand.json` is migrated automatically on first start). Fields:
