@@ -6,10 +6,11 @@ import { getTemplate } from "@/lib/templates";
 import { createCarousel, addSlide } from "@/lib/carousels";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const brandId = new URL(request.url).searchParams.get("brandId");
   const template = await getTemplate(id);
   if (!template) {
     return NextResponse.json({ error: "Template not found" }, { status: 404 });
@@ -18,7 +19,8 @@ export async function POST(
   // Create new carousel from template
   const carousel = await createCarousel(
     `${template.name} (from template)`,
-    template.aspectRatio
+    template.aspectRatio,
+    brandId
   );
 
   // Copy all slides

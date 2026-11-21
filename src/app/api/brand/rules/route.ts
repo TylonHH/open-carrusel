@@ -5,8 +5,12 @@ import { addBrandRule, getBrand } from "@/lib/brand";
 
 const MAX_RULE_LENGTH = 1000;
 
-export async function GET() {
-  const brand = await getBrand();
+function brandIdOf(request: Request) {
+  return new URL(request.url).searchParams.get("brandId");
+}
+
+export async function GET(request: Request) {
+  const brand = await getBrand(brandIdOf(request));
   return NextResponse.json({ rules: brand.rules });
 }
 
@@ -27,7 +31,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const rule = await addBrandRule(text);
+    const rule = await addBrandRule(brandIdOf(request), text);
+    if (!rule) {
+      return NextResponse.json({ error: "Brand not found" }, { status: 404 });
+    }
     return NextResponse.json(rule, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });

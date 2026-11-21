@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { TemplateCard } from "./TemplateCard";
+import { getStoredBrandId } from "@/lib/active-brand";
 import type { Template } from "@/types/template";
 
 export function TemplateGallery() {
@@ -26,7 +27,9 @@ export function TemplateGallery() {
 
   const handleUse = useCallback(
     async (templateId: string) => {
-      const res = await fetch(`/api/templates/${templateId}/use`, {
+      const brandId = getStoredBrandId();
+      const query = brandId ? `?brandId=${encodeURIComponent(brandId)}` : "";
+      const res = await fetch(`/api/templates/${templateId}/use${query}`, {
         method: "POST",
       });
       if (res.ok) {

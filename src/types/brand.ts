@@ -26,6 +26,7 @@ export interface BrandRule {
 }
 
 export interface BrandConfig {
+  id: string;
   name: string;
   colors: BrandColors;
   fonts: BrandFonts;
@@ -37,7 +38,12 @@ export interface BrandConfig {
   updatedAt: string;
 }
 
+export interface BrandsData {
+  brands: BrandConfig[];
+}
+
 export const DEFAULT_BRAND: BrandConfig = {
+  id: "",
   name: "",
   colors: {
     primary: "#1a1a2e",

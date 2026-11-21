@@ -75,7 +75,7 @@ if (existsSync("node_modules") && statSync("node_modules").isDirectory()) {
 }
 
 // 4. Data files
-const dataFiles = ["brand.json", "carousels.json", "templates.json", "staged-actions.json", "style-presets.json"];
+const dataFiles = ["brands.json", "carousels.json", "templates.json", "staged-actions.json", "style-presets.json"];
 const missingData = dataFiles.filter((f) => !existsSync(join("data", f)));
 if (missingData.length === 0) {
   add(CHECK, "Data files", "all 5 seeded");

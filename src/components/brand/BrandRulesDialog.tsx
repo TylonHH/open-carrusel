@@ -12,13 +12,16 @@ interface BrandRulesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   brandName?: string;
+  brandId?: string;
 }
 
 export function BrandRulesDialog({
   open,
   onOpenChange,
   brandName,
+  brandId,
 }: BrandRulesDialogProps) {
+  const query = brandId ? `?brandId=${encodeURIComponent(brandId)}` : "";
   const [rules, setRules] = useState<BrandRule[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,7 +34,7 @@ export function BrandRulesDialog({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/brand/rules`);
+      const response = await fetch(`/api/brand/rules${query}`);
       const data = (await response.json()) as { rules?: BrandRule[] };
       setRules(data.rules ?? []);
     } catch {
@@ -39,7 +42,7 @@ export function BrandRulesDialog({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [query]);
 
   useEffect(() => {
     if (!open) return;
@@ -55,7 +58,7 @@ export function BrandRulesDialog({
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch(`/api/brand/rules`, {
+      const response = await fetch(`/api/brand/rules${query}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
@@ -74,7 +77,7 @@ export function BrandRulesDialog({
     } finally {
       setSaving(false);
     }
-  }, [newRule, saving]);
+  }, [newRule, saving, query]);
 
   const saveEdit = useCallback(
     async (id: string) => {
@@ -83,7 +86,7 @@ export function BrandRulesDialog({
       setSaving(true);
       setError(null);
       try {
-        const response = await fetch(`/api/brand/rules/${id}`, {
+        const response = await fetch(`/api/brand/rules/${id}${query}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text }),
@@ -102,13 +105,13 @@ export function BrandRulesDialog({
         setSaving(false);
       }
     },
-    [editingText, saving]
+    [editingText, saving, query]
   );
 
   const deleteRule = useCallback(async (id: string) => {
     setError(null);
     try {
-      const response = await fetch(`/api/brand/rules/${id}`, {
+      const response = await fetch(`/api/brand/rules/${id}${query}`, {
         method: "DELETE",
       });
       if (!response.ok) {
@@ -121,7 +124,7 @@ export function BrandRulesDialog({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     }
-  }, []);
+  }, [query]);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>

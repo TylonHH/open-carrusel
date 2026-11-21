@@ -19,6 +19,8 @@ interface Message {
 
 interface ChatPanelProps {
   carouselId: string;
+  brandId?: string;
+  brandName?: string;
   referenceImages?: ReferenceImage[];
   claudeAvailable: boolean;
   onStreamStart?: () => void;
@@ -28,6 +30,8 @@ interface ChatPanelProps {
 
 export function ChatPanel({
   carouselId,
+  brandId,
+  brandName,
   claudeAvailable,
   referenceImages = [],
   onStreamStart,
@@ -286,7 +290,12 @@ export function ChatPanel({
         </div>
       </div>
 
-      <BrandRulesDialog open={rulebookOpen} onOpenChange={setRulebookOpen} />
+      <BrandRulesDialog
+        open={rulebookOpen}
+        onOpenChange={setRulebookOpen}
+        brandId={brandId}
+        brandName={brandName}
+      />
 
       <ReferenceImages
         carouselId={carouselId}

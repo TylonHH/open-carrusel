@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CreateCarouselDialog } from "@/components/ui/create-carousel-dialog";
 import { BrandSetup } from "@/components/brand/BrandSetup";
+import { BrandSwitcher } from "@/components/brand/BrandSwitcher";
+import { getStoredBrandId, storeBrandId } from "@/lib/active-brand";
 import { SlideRenderer } from "@/components/editor/SlideRenderer";
 import { TemplateGallery } from "@/components/templates/TemplateGallery";
 import type { Carousel } from "@/types/carousel";
@@ -21,24 +23,70 @@ export default function DashboardPage() {
   const router = useRouter();
   const [carousels, setCarousels] = useState<Carousel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showBrandSetup, setShowBrandSetup] = useState(false);
-  const [brand, setBrand] = useState<BrandConfig | null>(null);
+  const [brandDialog, setBrandDialog] = useState<"edit" | "create" | null>(null);
+  const [brands, setBrands] = useState<BrandConfig[]>([]);
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
+  const [brandError, setBrandError] = useState<string | null>(null);
+  const activeBrand = brands.find((b) => b.id === activeBrandId);
+
+  const loadCarousels = useCallback(async (brandId: string | null) => {
+    setLoading(true);
+    try {
+      const url = brandId
+        ? `/api/carousels?brandId=${encodeURIComponent(brandId)}`
+        : "/api/carousels";
+      const data = await fetch(url).then((r) => r.json());
+      setCarousels(data.carousels || []);
+    } catch {
+      setCarousels([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const selectBrand = useCallback(
+    (id: string) => {
+      setActiveBrandId(id);
+      storeBrandId(id);
+      setBrandError(null);
+      void loadCarousels(id);
+    },
+    [loadCarousels]
+  );
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/carousels").then((r) => r.json()),
-      fetch("/api/brand").then((r) => r.json()),
-    ])
-      .then(([carouselData, brandData]) => {
-        setCarousels(carouselData.carousels || []);
-        setBrand(brandData);
-        if (!brandData.name || brandData.name.trim() === "") {
-          setShowBrandSetup(true);
+    fetch("/api/brands")
+      .then((r) => r.json())
+      .then((data) => {
+        const list: BrandConfig[] = data.brands || [];
+        setBrands(list);
+        if (list.length === 0) {
+          setBrandDialog("create");
+          setLoading(false);
+          return;
         }
-        setLoading(false);
+        const stored = getStoredBrandId();
+        const id = list.some((b) => b.id === stored) ? stored! : list[0].id;
+        setActiveBrandId(id);
+        storeBrandId(id);
+        void loadCarousels(id);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [loadCarousels]);
+
+  const handleBrandSaved = useCallback(
+    (saved?: BrandConfig) => {
+      setBrandDialog(null);
+      if (!saved) return;
+      setBrands((prev) =>
+        prev.some((b) => b.id === saved.id)
+          ? prev.map((b) => (b.id === saved.id ? saved : b))
+          : [...prev, saved]
+      );
+      if (saved.id !== activeBrandId) selectBrand(saved.id);
+    },
+    [activeBrandId, selectBrand]
+  );
 
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
@@ -46,6 +94,36 @@ export default function DashboardPage() {
     description: string;
     onConfirm: () => void;
   }>({ open: false, title: "", description: "", onConfirm: () => {} });
+
+  const handleDeleteBrand = useCallback(() => {
+    if (!activeBrand) return;
+    setConfirmState({
+      open: true,
+      title: `Delete brand "${activeBrand.name}"?`,
+      description:
+        "The brand identity and its rulebook will be permanently deleted. A brand that still has carousels cannot be deleted.",
+      onConfirm: async () => {
+        const res = await fetch(`/api/brands/${activeBrand.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setBrandError(data.error || "Could not delete brand");
+          return;
+        }
+        const rest = brands.filter((b) => b.id !== activeBrand.id);
+        setBrands(rest);
+        if (rest.length > 0) {
+          selectBrand(rest[0].id);
+        } else {
+          setActiveBrandId(null);
+          storeBrandId(null);
+          setCarousels([]);
+          setBrandDialog("create");
+        }
+      },
+    });
+  }, [activeBrand, brands, selectBrand]);
 
   const handleDelete = useCallback((e: React.MouseEvent, id: string, name: string) => {
     e.stopPropagation();
@@ -72,17 +150,18 @@ export default function DashboardPage() {
       body: JSON.stringify({
         name,
         aspectRatio,
+        brandId: activeBrandId,
       }),
     });
     if (res.ok) {
       const carousel = await res.json();
       router.push(`/carousel/${carousel.id}`);
     }
-  }, [router]);
+  }, [router, activeBrandId]);
 
   return (
     <div className="h-full flex flex-col">
-      <TopBar onSettingsClick={() => setShowBrandSetup(true)} />
+      <TopBar onSettingsClick={() => activeBrand && setBrandDialog("edit")} />
 
       <ConfirmDialog
         open={confirmState.open}
@@ -100,17 +179,14 @@ export default function DashboardPage() {
         onCreate={handleCreate}
       />
 
-      <BrandSetup
-        open={showBrandSetup}
-        onComplete={() => {
-          setShowBrandSetup(false);
-          fetch("/api/brand")
-            .then((r) => r.json())
-            .then((data) => setBrand(data))
-            .catch(() => {});
-        }}
-        initialBrand={brand || undefined}
-      />
+      {brandDialog && (
+        <BrandSetup
+          key={brandDialog === "edit" ? activeBrandId : "new"}
+          open
+          onComplete={handleBrandSaved}
+          initialBrand={brandDialog === "edit" ? activeBrand : undefined}
+        />
+      )}
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-5xl mx-auto px-6 py-8">
@@ -121,11 +197,27 @@ export default function DashboardPage() {
                 Create Instagram carousels with AI
               </p>
             </div>
+            {brands.length > 0 && (
+              <BrandSwitcher
+                brands={brands}
+                activeId={activeBrandId}
+                onSelect={selectBrand}
+                onCreate={() => setBrandDialog("create")}
+                onEdit={() => setBrandDialog("edit")}
+                onDelete={handleDeleteBrand}
+              />
+            )}
             <Button onClick={() => setShowCreateDialog(true)} variant="accent">
               <Plus className="h-4 w-4" />
               New Carousel
             </Button>
           </div>
+
+          {brandError && (
+            <p role="alert" className="mb-4 text-sm text-destructive">
+              {brandError}
+            </p>
+          )}
 
           {/* Tabs */}
           <div className="flex gap-1 mb-6 border-b border-border">

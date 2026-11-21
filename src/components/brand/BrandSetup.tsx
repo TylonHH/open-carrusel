@@ -15,7 +15,9 @@ import { DEFAULT_BRAND } from "@/types/brand";
 
 interface BrandSetupProps {
   open: boolean;
-  onComplete: () => void;
+  /** Called with the saved brand, or with nothing when the dialog is dismissed. */
+  onComplete: (saved?: BrandConfig) => void;
+  /** An existing brand to edit; omit to create a new one. */
   initialBrand?: BrandConfig;
 }
 
@@ -48,12 +50,16 @@ export function BrandSetup({ open, onComplete, initialBrand }: BrandSetupProps) 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      await fetch("/api/brand", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(brand),
-      });
-      onComplete();
+      const res = await fetch(
+        brand.id ? `/api/brands/${brand.id}` : "/api/brands",
+        {
+          method: brand.id ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(brand),
+        }
+      );
+      if (!res.ok) return;
+      onComplete((await res.json()) as BrandConfig);
     } catch {
       // ignore
     } finally {
@@ -65,7 +71,7 @@ export function BrandSetup({ open, onComplete, initialBrand }: BrandSetupProps) 
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onComplete();
+      if (e.key === "Escape") onComplete(undefined);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -76,12 +82,12 @@ export function BrandSetup({ open, onComplete, initialBrand }: BrandSetupProps) 
   return (
     <div
       className="oc-fade fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onComplete(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) onComplete(undefined); }}
     >
       <div className="oc-enter-pop bg-surface rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden relative">
         {/* Close button */}
         <button
-          onClick={onComplete}
+          onClick={() => onComplete(undefined)}
           className="absolute top-4 right-4 h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors z-10"
           aria-label="Close"
         >
@@ -95,7 +101,9 @@ export function BrandSetup({ open, onComplete, initialBrand }: BrandSetupProps) 
               <Palette className="h-5 w-5 text-accent" />
             </div>
             <div>
-              <h2 className="text-lg font-bold">Set Up Your Brand</h2>
+              <h2 className="text-lg font-bold">
+                {brand.id ? "Edit Brand" : "Set Up Your Brand"}
+              </h2>
               <p className="text-xs text-muted-foreground">
                 Step {step + 1} of {STEPS.length}: {STEPS[step]}
               </p>

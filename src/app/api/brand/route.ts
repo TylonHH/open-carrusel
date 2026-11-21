@@ -4,15 +4,22 @@
 import { NextResponse } from "next/server";
 import { getBrand, updateBrand } from "@/lib/brand";
 
-export async function GET() {
-  const brand = await getBrand();
+// Single-brand compatible endpoint. Pass ?brandId= to target a specific brand;
+// without it the first brand is used.
+export async function GET(request: Request) {
+  const brandId = new URL(request.url).searchParams.get("brandId");
+  const brand = await getBrand(brandId);
   return NextResponse.json(brand);
 }
 
 export async function PUT(request: Request) {
   try {
+    const brandId = new URL(request.url).searchParams.get("brandId");
     const body = await request.json();
-    const updated = await updateBrand(body);
+    const updated = await updateBrand(brandId, body);
+    if (!updated) {
+      return NextResponse.json({ error: "Brand not found" }, { status: 404 });
+    }
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });

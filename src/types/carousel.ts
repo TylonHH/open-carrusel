@@ -14,7 +14,7 @@ export interface Slide {
 export interface ReferenceImage {
   id: string;
   url: string;       // e.g. "/uploads/abc.png"
-  absPath: string;    // absolute path for Claude to Read
+  absPath: string;    // absolute path for the agent to read
   name: string;       // original filename or description
   addedAt: string;
 }
@@ -22,6 +22,8 @@ export interface ReferenceImage {
 export interface Carousel {
   id: string;
   name: string;
+  /** Owning brand. Missing on legacy carousels, which belong to the first brand. */
+  brandId?: string;
   aspectRatio: AspectRatio;
   slides: Slide[];
   referenceImages: ReferenceImage[];

@@ -300,7 +300,7 @@ On Windows, run `where claude` in PowerShell to find the path (typically `C:\Use
 
 ### Brand config
 
-Set on first run (or via the gear icon in the top bar). Stored at `/data/brand.json`. Fields:
+Set on first run (or via the gear icon in the top bar). You can keep several brands (one per client or account): switch, add, edit and delete them with the brand switcher on the dashboard. Each carousel belongs to one brand. Stored at `/data/brands.json` (an existing `/data/brand.json` is migrated automatically on first start). Fields:
 
 - **Name** — your handle / company / project
 - **Colors** — primary, secondary, accent, background, surface

@@ -5,17 +5,19 @@ import { NextResponse } from "next/server";
 import { listCarousels, createCarousel } from "@/lib/carousels";
 import type { AspectRatio } from "@/types/carousel";
 
-export async function GET() {
-  const carousels = await listCarousels();
+export async function GET(request: Request) {
+  const brandId = new URL(request.url).searchParams.get("brandId");
+  const carousels = await listCarousels(brandId);
   return NextResponse.json({ carousels });
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, aspectRatio } = body as {
+    const { name, aspectRatio, brandId } = body as {
       name?: string;
       aspectRatio?: AspectRatio;
+      brandId?: string;
     };
 
     if (!name || typeof name !== "string" || !name.trim()) {
@@ -30,7 +32,11 @@ export async function POST(request: Request) {
       ? (aspectRatio as AspectRatio)
       : "4:5";
 
-    const carousel = await createCarousel(name.trim(), ratio);
+    const carousel = await createCarousel(
+      name.trim(),
+      ratio,
+      typeof brandId === "string" ? brandId : null
+    );
     return NextResponse.json(carousel, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });

@@ -3,6 +3,7 @@
 // id: er-00809c4b
 import { readDataSafe, writeData } from "./data";
 import { generateId, now } from "./utils";
+import { getDefaultBrandId } from "./brand";
 import type { Carousel, CarouselsData, Slide, AspectRatio, ReferenceImage } from "@/types/carousel";
 import { MAX_SLIDES, MAX_VERSIONS } from "@/types/carousel";
 
@@ -16,9 +17,22 @@ async function save(data: CarouselsData): Promise<void> {
   await writeData(FILE, data);
 }
 
-export async function listCarousels(): Promise<Carousel[]> {
+// Carousels without a brandId (created before multi-brand) belong to the first brand.
+async function ownedBy(brandId: string): Promise<Carousel[]> {
+  const [data, defaultId] = await Promise.all([load(), getDefaultBrandId()]);
+  return data.carousels.filter(
+    (c) => !c.isTemplate && (c.brandId ?? defaultId) === brandId
+  );
+}
+
+export async function listCarousels(brandId?: string | null): Promise<Carousel[]> {
+  if (brandId) return ownedBy(brandId);
   const data = await load();
   return data.carousels.filter((c) => !c.isTemplate);
+}
+
+export async function countCarouselsForBrand(brandId: string): Promise<number> {
+  return (await ownedBy(brandId)).length;
 }
 
 export async function getCarousel(id: string): Promise<Carousel | null> {
@@ -28,12 +42,14 @@ export async function getCarousel(id: string): Promise<Carousel | null> {
 
 export async function createCarousel(
   name: string,
-  aspectRatio: AspectRatio
+  aspectRatio: AspectRatio,
+  brandId?: string | null
 ): Promise<Carousel> {
   const data = await load();
   const carousel: Carousel = {
     id: generateId(),
     name,
+    brandId: brandId || (await getDefaultBrandId()) || undefined,
     aspectRatio,
     slides: [],
     referenceImages: [],
@@ -50,7 +66,7 @@ export async function createCarousel(
 
 export async function updateCarousel(
   id: string,
-  updates: Partial<Pick<Carousel, "name" | "aspectRatio" | "tags" | "chatSessionId" | "caption" | "hashtags">>
+  updates: Partial<Pick<Carousel, "name" | "brandId" | "aspectRatio" | "tags" | "chatSessionId" | "caption" | "hashtags">>
 ): Promise<Carousel | null> {
   const data = await load();
   const idx = data.carousels.findIndex((c) => c.id === id);

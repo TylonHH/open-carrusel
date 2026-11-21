@@ -26,7 +26,11 @@ export async function PUT(
       );
     }
 
-    const rule = await updateBrandRule(id, text);
+    const rule = await updateBrandRule(
+      new URL(request.url).searchParams.get("brandId"),
+      id,
+      text
+    );
     if (!rule) {
       return NextResponse.json({ error: "Rule not found" }, { status: 404 });
     }
@@ -37,11 +41,14 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const removed = await removeBrandRule(id);
+  const removed = await removeBrandRule(
+    new URL(request.url).searchParams.get("brandId"),
+    id
+  );
   if (!removed) {
     return NextResponse.json({ error: "Rule not found" }, { status: 404 });
   }

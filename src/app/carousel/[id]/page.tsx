@@ -19,6 +19,7 @@ import { CaptionPanel } from "@/components/editor/CaptionPanel";
 import { SafeZoneOverlay } from "@/components/editor/SafeZoneOverlay";
 import { FullscreenPreview } from "@/components/editor/FullscreenPreview";
 import type { Carousel, AspectRatio } from "@/types/carousel";
+import type { BrandConfig } from "@/types/brand";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -35,6 +36,9 @@ export default function CarouselEditorPage({ params }: PageProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSafeZones, setShowSafeZones] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [brands, setBrands] = useState<BrandConfig[]>([]);
+  const brand =
+    brands.find((b) => b.id === carousel?.brandId) ?? brands[0];
 
   // Confirm dialog state
   const [confirmState, setConfirmState] = useState<{
@@ -78,6 +82,12 @@ export default function CarouselEditorPage({ params }: PageProps) {
     const load = async () => {
       await fetchCarousel();
       try {
+        const data = await fetch("/api/brands").then((r) => r.json());
+        setBrands(data.brands || []);
+      } catch {
+        // brand label is optional
+      }
+      try {
         const res = await fetch("/api/chat/check");
         const data: { available?: boolean } = await res.json();
         if (data.available === false) setClaudeAvailable(false);
@@ -108,6 +118,15 @@ export default function CarouselEditorPage({ params }: PageProps) {
       const updated = await res.json();
       setCarousel(updated);
     }
+  };
+
+  const handleBrandChange = async (brandId: string) => {
+    const res = await fetch(`/api/carousels/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ brandId }),
+    });
+    if (res.ok) setCarousel(await res.json());
   };
 
   const handleDeleteSlide = (slideId: string) => {
@@ -244,6 +263,8 @@ export default function CarouselEditorPage({ params }: PageProps) {
           <div className="oc-fade w-80 border-r border-border shrink-0 flex flex-col bg-surface">
             <ChatPanel
               carouselId={id}
+              brandId={brand?.id}
+              brandName={brand?.name}
               claudeAvailable={claudeAvailable}
               referenceImages={carousel.referenceImages || []}
               onStreamStart={handleStreamStart}
@@ -262,6 +283,22 @@ export default function CarouselEditorPage({ params }: PageProps) {
               onChange={handleAspectChange}
             />
             <div className="flex-1" />
+            {brands.length > 0 && (
+              <select
+                value={brand?.id ?? ""}
+                onChange={(e) => handleBrandChange(e.target.value)}
+                disabled={isGenerating}
+                aria-label="Brand"
+                title="Brand used for this carousel"
+                className="h-8 max-w-[160px] rounded-md border border-border bg-surface px-2 text-xs"
+              >
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            )}
             <Button
               variant="ghost"
               size="sm"

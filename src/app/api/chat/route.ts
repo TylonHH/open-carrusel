@@ -57,14 +57,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // The carousel decides which brand's identity and rulebook apply
+  const carousel = carouselId ? await getCarousel(carouselId) : null;
+  const brandId = carousel?.brandId ?? null;
+
   let savedRuleText: string | null = null;
   if (rememberBrandRule === true) {
-    savedRuleText = (await addBrandRule(message)).text;
+    savedRuleText = (await addBrandRule(brandId, message))?.text ?? null;
   }
 
   // Build dynamic system prompt with current brand + carousel + style preset context
-  const brand = await getBrand();
-  const carousel = carouselId ? await getCarousel(carouselId) : null;
+  const brand = await getBrand(brandId);
   const stylePreset = stylePresetId ? await getPreset(stylePresetId) : null;
   const ruleNote = savedRuleText
     ? `

@@ -88,23 +88,7 @@ function seedDataFiles() {
   }
 
   const seeds = {
-    "brand.json": {
-      name: "",
-      colors: {
-        primary: "#1a1a2e",
-        secondary: "#16213e",
-        accent: "#e94560",
-        background: "#ffffff",
-        surface: "#f5f5f5",
-      },
-      fonts: { heading: "Inter", body: "Inter" },
-      customFonts: [],
-      logoPath: null,
-      styleKeywords: [],
-      rules: [],
-      createdAt: "",
-      updatedAt: "",
-    },
+    "brands.json": { brands: [] },
     "carousels.json": { carousels: [] },
     "templates.json": { templates: [] },
     "staged-actions.json": { actions: [] },
